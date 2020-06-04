@@ -1,0 +1,310 @@
+-----------------------------------------------------------------------------
+-- 
+-- MATHFUN
+-- UP834615
+--
+--
+
+-- Types
+import Data.List
+import Data.Char
+
+type Title = String
+type Director = String
+type Year = Int
+type Likes = String
+type Dislikes = String
+type Database = [Film]
+type User = String
+type UserLiked = (Title, String)
+type LikeMovie = Bool
+
+-- Define Film type here 
+data Film = Film Title Director Year [Likes] [Dislikes]
+            deriving(Eq,Ord,Show,Read)
+
+testDatabase :: [Film]
+testDatabase = [Film "Blade Runner" "Ridley Scott" 1982 ["Zoe", "Heidi", "Jo", "Kate", "Emma", "Liz", "Dave"] ["Sam", "Olga", "Tim"],
+                Film "The Fly" "David Cronenberg" 1986 ["Garry", "Dave", "Zoe"] ["Kevin", "Emma", "Heidi", "Jo", "Kate"],
+                Film "Body Of Lies" "Ridley Scott" 2008 ["Garry", "Dave"] ["Bill", "Olga", "Tim", "Zoe", "Paula"],
+                Film "Avatar" "James Cameron" 2009 ["Dave", "Amy", "Liz"] ["Olga", "Tim", "Zoe", "Paula"],
+                Film "Titanic" "James Cameron" 1997 ["Zoe", "Emma", "Paula", "Liz", "Olga", "Dave"] ["Sam", "Wally", "Kate"],
+                Film "The Departed" "Martin Scorsese" 2006 ["Wally", "Liz", "Kevin", "Tim", "Emma"] ["Olga", "Dave", "Kate", "Zoe"],
+                Film "Aliens" "Ridley Scott" 1986 ["Dave", "Garry", "Liz", "Sam", "Wally", "Kate", "Zoe"] ["Tim", "Emma", "Jo", "Olga"],
+                Film "Kingdom Of Heaven" "Ridley Scott" 2005 ["Jo", "Wally", "Emma"] ["Tim", "Garry", "Ian", "Neal"],
+                Film "Alien: Covenant" "Ridley Scott" 2017 ["Kevin", "Tim"] ["Emma", "Jo", "Liz"],
+                Film "E.T. The Extra-Terrestrial" "Steven Spielberg" 1982 ["Dave", "Amy", "Garry", "Ian", "Neal"] ["Jenny", "Kate", "Emma", "Olga"],
+                Film "Bridge of Spies" "Steven Spielberg" 2015 ["Wally", "Sam", "Dave", "Neal"] ["Bill", "Garry", "Ian", "Kate"],
+                Film "Jaws" "Steven Spielberg" 1975 ["Jenny", "Emma", "Bill", "Neal"] ["Sam", "Ian", "Kate"],
+                Film "The Martian" "Ridley Scott" 2015 ["Wally", "Sam", "Dave", "Jo", "Jenny", "Kate", "Emma", "Olga"] ["Ian", "Neal", "Tim", "Liz"],
+                Film "The BFG" "Steven Spielberg" 2016 ["Sam", "Wally", "Dave", "Jo", "Kate"] ["Neal"],
+                Film "The Shawshank Redemption" "Frank Darabont" 1994 ["Dave", "Amy", "Bill", "Garry", "Ian", "Neal", "Kate", "Jenny", "Zoe", "Heidi"] ["Jo"],
+                Film "Gladiator" "Ridley Scott" 2000 ["Olga", "Neal", "Kate", "Garry"] ["Heidi", "Bill", "Sam", "Zoe"],
+                Film "The Green Mile" "Frank Darabont" 1999 ["Kevin", "Tim", "Emma", "Heidi"] ["Kate", "Jenny", "Zoe"],
+                Film "True Lies" "James Cameron" 1994 ["Sam", "Dave"] ["Emma", "Olga", "Jenny", "Zoe"],
+                Film "Super 8" "J J Abrams" 2011 ["Kevin", "Tim", "Emma", "Olga", "Heidi"] ["Wally", "Dave", "Jenny", "Zoe"],
+                Film "Minority Report" "Steven Spielberg" 2002 ["Kevin", "Kate", "Tim", "Emma", "Jenny", "Zoe"] ["Olga", "Heidi"],
+                Film "War Horse" "Steven Spielberg" 2011 ["Garry", "Bill", "Olga", "Jo", "Wally", "Emma", "Tim", "Kate", "Zoe"] ["Heidi", "Jenny", "Sam"],
+                Film "Silence" "Martin Scorsese" 2016 ["Wally", "Emma", "Tim", "Heidi", "Bill", "Jo"] ["Dave", "Olga"],
+                Film "The Terminal" "Steven Spielberg" 2004 ["Kate", "Dave", "Jo", "Wally", "Emma"] ["Heidi"],
+                Film "Star Wars: The Force Awakens" "J J Abrams" 2015 ["Emma", "Wally", "Zoe", "Kate", "Bill", "Dave", "Liz"] ["Olga", "Jo", "Neal"],
+                Film "Hugo" "Martin Scorsese" 2011 ["Wally", "Sam"] ["Kate", "Bill", "Dave"]]
+                         
+-- Helper functions go here
+
+--this function takes a list of likes and a list of dislikes and works out the rating of the website with the data.
+websiteRating :: [likes] -> [dislikes] -> Int
+websiteRating l d = round(fromIntegral (length l) / fromIntegral (length l + length d)*100)
+
+-- Formats individual film as formatted string. "\n" adds a new formatted line to each part. putStrLn formats this for you. 
+formatIndividualFilm :: Film -> String
+formatIndividualFilm (Film title director year likes dislikes)= "\nFilm Name: " ++ title ++ "\nDirector: " ++ director ++ "\nYear: " ++ show year ++ "\nWebsite Rating: " ++ show (websiteRating likes dislikes) ++ "%"
+
+--takes a list of ints and adds them all up with foldr, then divides by the length of the list, giving the average. 
+avgRating :: [Int] -> Float
+avgRating allRating = fromIntegral(foldr (+) 0 allRating) / fromIntegral (length allRating)
+
+--takes a director and the database and checks whether the director exists using recursion. Return true if found, if not found keep searching the rest of the list until it is empty. 
+directorExists :: Director -> Database -> Bool
+directorExists directorMatch [] = False
+directorExists directorMatch (Film title director year likes dislikes:rest)
+    |directorMatch == director = True
+    |otherwise = directorExists directorMatch rest
+
+--takes a user and a film type, check if the users name is an element within either the likes and dislike lists, gives the appropriate status. 
+userHasRated :: User -> Film -> (Bool, String)
+userHasRated user (Film title director year likes dislikes)
+    |elem user likes == True = (True, "Likes")
+    |elem user dislikes == True = (True, "Dislikes")
+    |otherwise = (False, "")
+
+--takes the users name, the film title, if the user likes the film(bool) and film. Returns the same film or an altered film depending on users choice and what they have already selected. 
+userRateMovieHelper :: User -> Title -> LikeMovie -> Film -> Film
+userRateMovieHelper user titleMovie likeMovie (Film title director year likes dislikes)
+    |title /= titleMovie = (Film title director year likes dislikes)
+    |(userHasRated user (Film title director year likes dislikes)) == (True, "Likes") && likeMovie == True = (Film title director year likes dislikes)
+    |(userHasRated user (Film title director year likes dislikes)) == (True, "Likes") && likeMovie == False = (Film title director year (likes \\ [user]) (user:dislikes))
+    |(userHasRated user (Film title director year likes dislikes)) == (True, "Dislikes") && likeMovie == False = (Film title director year likes dislikes)
+    |(userHasRated user (Film title director year likes dislikes)) == (True, "Dislikes") && likeMovie == True = (Film title director year (user:likes) (dislikes \\ [user]))
+    |(userHasRated user (Film title director year likes dislikes)) == (False, "") && likeMovie == True = (Film title director year (user:likes) dislikes)
+    |otherwise = (Film title director year likes (user:dislikes))
+
+--takes two years and returns them in the correct order (if they are wrong) or as they were (if they were correct).
+validateYear :: Year -> Year -> (Int, Int)
+validateYear fromY toY
+    | fromY < 0 || toY < 0 = (1000, 3000)
+    | toY < fromY = (toY, fromY)
+    | fromY < toY = (fromY, toY)  
+    
+--
+--  Your functional code goes here
+
+--i. 
+--Add a film to the list of films in the database. Takes the title, director, year and database then returns the database with the new film added to it. 
+addFilm :: Title -> Director -> Year -> Database -> Database
+addFilm title director year filmDatabase = filmDatabase ++ [Film title director year [] []]
+
+--ii.
+--Takes the entire database of films and returns a formatted string. Unlines added /n between every single movie so that its seperated when shown. 
+filmsAsString :: Database -> String
+filmsAsString filmDatabase = (unlines . map formatIndividualFilm) filmDatabase
+
+--iii.
+--Takes the director and database and uses list comprehension to only return the films with the in putted director. 
+filmsByDirector :: Director -> Database -> String
+filmsByDirector directorMatch [] = "No films"
+filmsByDirector directorMatch filmDatabase
+    |(directorExists directorMatch filmDatabase) == False = "Director does not exist"
+    |otherwise = filmsAsString [Film title director year likes dislikes | (Film title director year likes dislikes) <- filmDatabase, director == directorMatch]
+
+--iv
+--Take the database and uses list comprehension to only return the films with a rating of 75% or over. Uses the websiteRating function to select only those films. 
+filmsRated75PercPlus :: Database -> String
+filmsRated75PercPlus filmDatabase = filmsAsString [Film title director year likes dislikes | (Film title director year likes dislikes) <- filmDatabase, websiteRating likes dislikes >= 75]
+
+---v
+--Takes the director and database and uses the avgRating function to get the average rating for each film that matches to the director. 
+avgRatingsByDirector :: Director -> Database -> Float
+avgRatingByDirector directorMatch [] = 0.00
+avgRatingsByDirector directorMatch filmDatabase
+    |(directorExists directorMatch filmDatabase) == False = 0.00
+    |otherwise = avgRating [websiteRating likes dislikes | (Film title director year likes dislikes) <- filmDatabase, director == directorMatch]
+    
+--vi
+--Takes the username and the database and return the title of the movie along with what rating the user has given the movie. For the condition on list comprehension, it only returns films that have been giving a rating.
+getRatingsFromUser :: User -> Database -> [UserLiked]
+getRatingsFromUser user filmDatabase = [(title, (snd (userHasRated user (Film title director year likes dislikes)))) | (Film title director year likes dislikes) <- filmDatabase, fst (userHasRated user (Film title director year likes dislikes)) == True]
+
+--vii
+--Takes the username, title of the movie, whether the use likes the movie(boolean) and the database. Calls the userRateMovieHelper function which takes each film and performs the necessary correction before returning it. 
+userRateMovie :: User -> Title -> LikeMovie -> Database -> Database
+userRateMovie _ _ _ [] = []
+userRateMovie user titleMovie likeMovie filmDatabase = [userRateMovieHelper user titleMovie likeMovie (Film title director year likes dislikes) | (Film title director year likes dislikes) <- filmDatabase]
+
+--viii
+--takes 2 years (from and to) and the database, returns the fils within the fiven time frame if the years are valid. 
+moviesByYearFromTo:: Year -> Year -> Database -> String
+moviesByYearFromTo fromY toY filmDatabase = filmsAsString [Film title director year likes dislikes | (Film title director year likes dislikes) <- filmDatabase, year >= (fst (validateYear fromY toY)) && year <= (snd (validateYear fromY toY))]
+    
+-- Demo function to test basic functionality (without persistence - i.e. 
+-- testDatabase doesn't change and nothing is saved/loaded to/from file).
+
+demo :: Int -> IO ()
+demo 1  = putStrLn (filmsAsString (addFilm "Sherlock Gnomes" "John Stevenson" 2018 testDatabase))
+demo 2  = putStrLn (filmsAsString testDatabase)
+demo 3  = putStrLn (filmsByDirector "Ridley Scott" testDatabase)
+demo 4  = putStrLn (filmsRated75PercPlus testDatabase)
+demo 5  = putStrLn ( show (avgRatingsByDirector "Ridley Scott" testDatabase))
+demo 6  = putStrLn ( show (getRatingsFromUser "Emma" testDatabase))
+demo 7  = putStrLn (filmsAsString (userRateMovie "Emma" "Avatar" True testDatabase))
+demo 71 = putStrLn (filmsAsString (userRateMovie "Emma" "Titanic" True testDatabase))
+demo 72 = putStrLn (filmsAsString (userRateMovie "Emma" "Jaws" False testDatabase))
+demo 8  = putStrLn (moviesByYearFromTo 2000 2006 testDatabase)
+
+--
+--
+-- Your user interface code goes here
+--
+--
+validateUsername :: String -> Bool
+validateUsername = all isLetter
+
+validateUserChoice :: String -> Bool
+validateUserChoice = all isDigit   
+    
+validateRating :: String -> Bool
+validateRating rating
+    |rating == "Yes" || rating == "No" = True
+    |otherwise = False
+    
+getUsername :: Database -> IO()
+getUsername filmDatabase = do
+    putStr "Please enter your name: "
+    username <- getLine
+    if username == "" || (validateUsername username) == False then do
+        putStrLn "The name you entered is not correct! Make sure that you have not left your name blank, included numbers, or includes special characters"
+        getUsername filmDatabase
+    else do
+        menu username filmDatabase
+
+main :: IO ()
+main = do
+    allFilms <- readFile "films.txt"
+    let filmDatabase = (read allFilms :: Database)
+    putStrLn (filmsAsString filmDatabase)
+    putStrLn "All films loaded"
+    putStr "Please enter your name: "
+    getUsername filmDatabase
+ 
+menu :: User -> Database -> IO ()
+menu username filmDatabase = do
+    putStrLn "1 - Add a new film"
+    putStrLn "2 - Show all films"
+    putStrLn "3 - Show all films by a specific director"
+    putStrLn "4 - Show all films rated 75% or higher"
+    putStrLn "5 - Show average rating of films by a specific director"
+    putStrLn "6 - Show user rating"
+    putStrLn "7 - Like or dislike a movie"
+    putStrLn "8 - Show all films by time frame"
+    putStrLn "0 - Save database and exit"
+    putStrLn "To perform any of the actions, type the corresponding number and press enter"
+    putStr "Which action would you like to perform? "
+    userInput <- getLine
+    if (validateUserChoice userInput) == True then do
+        if userInput == "0" then do
+            writeFile "films.txt" (show filmDatabase)
+            putStrLn "Saving database completed"
+        else do
+            userChoice userInput filmDatabase username
+    else do
+        putStrLn "Please enter a valid option. Digits between 0 and 8 only"
+        menu username filmDatabase
+    
+userChoice :: String -> Database -> User -> IO ()
+userChoice "1" filmDatabase user = addFilm_IO user filmDatabase
+userChoice "2" filmDatabase user = filmsAsString_IO user filmDatabase
+userChoice "3" filmDatabase user = filmsByDirector_IO user filmDatabase
+userChoice "4" filmDatabase user = filmsRated75PercPlus_IO user filmDatabase
+userChoice "5" filmDatabase user = avgRatingsByDirector_IO user filmDatabase
+userChoice "6" filmDatabase user = getRatingsFromUser_IO user filmDatabase
+userChoice "7" filmDatabase user = userRateMovie_IO user filmDatabase
+userChoice "8" filmDatabase user = moviesByYearFromTo_IO user filmDatabase
+
+addFilm_IO :: User -> Database -> IO ()
+addFilm_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    putStrLn "You are now about to add a new film to the database"
+    putStr "Please enter the title of the film: "
+    filmTitle <- getLine
+    putStr "Please enter the director of the film: "
+    filmDirector <- getLine
+    putStr "Please enter the year of the film: "
+    filmYear <- getLine
+    let updatedFilmDatabase = addFilm filmTitle filmDirector (read filmYear :: Year) filmDatabase
+    putStrLn "Film successfully added to database"
+    putStrLn "---------------------------------------------------------------------------------------------"
+    menu username updatedFilmDatabase
+    
+filmsAsString_IO :: User -> Database -> IO ()
+filmsAsString_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    putStrLn (filmsAsString filmDatabase)
+    menu username filmDatabase
+    
+filmsByDirector_IO :: User -> Database -> IO ()
+filmsByDirector_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    putStr "Please enter the directors name so we can filter the film results: "
+    filmDirector <- getLine
+    putStrLn (filmsByDirector filmDirector filmDatabase)
+    menu username filmDatabase
+
+filmsRated75PercPlus_IO :: User -> Database -> IO ()
+filmsRated75PercPlus_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    putStrLn (filmsRated75PercPlus filmDatabase)
+    menu username filmDatabase
+    
+avgRatingsByDirector_IO :: User -> Database -> IO ()
+avgRatingsByDirector_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    putStr "Please enter the directors name so we can find their average rating: "
+    filmDirector <- getLine
+    print (avgRatingsByDirector filmDirector filmDatabase)
+    menu username filmDatabase
+
+getRatingsFromUser_IO :: User -> Database -> IO ()
+getRatingsFromUser_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    print (getRatingsFromUser username filmDatabase)
+    menu username filmDatabase
+    
+userRateMovie_IO :: User -> Database -> IO ()
+userRateMovie_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    putStr "Please enter the title of the film: "
+    filmTitle <- getLine
+    putStr "Do you like this film? Please answer 'Yes' or 'No': "
+    filmRating <- getLine
+    if (validateRating filmRating) == True then do
+        if filmRating == "Yes" then do
+            let updatedDatabase = (userRateMovie username filmTitle True filmDatabase)
+            putStr "You have liked the film"
+            menu username updatedDatabase
+        else do
+            let updatedDatabase = (userRateMovie username filmTitle False filmDatabase)
+            putStr "You have disliked the film "
+            menu username updatedDatabase
+    else do
+        putStrLn "You need to answer either 'Yes' or 'No'"
+        userRateMovie_IO username filmDatabase
+
+moviesByYearFromTo_IO :: User -> Database -> IO ()
+moviesByYearFromTo_IO username filmDatabase = do
+    putStrLn "---------------------------------------------------------------------------------------------"
+    putStr "What year would you like to begin your search from? "
+    fromYear <- getLine
+    putStr "What year would you like to end your search from? "
+    toYear <- getLine
+    putStrLn (moviesByYearFromTo (read fromYear :: Year) (read toYear :: Year) filmDatabase)
+    menu username filmDatabase
